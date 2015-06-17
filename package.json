@@ -1,0 +1,22 @@
+{
+  "name": "shareBestAngle",
+  "version": "0.0.1",
+  "description": "final master project, shareBestAngle",
+  "main": "server.js",
+  "engines": {
+    "node": "0.12.x",
+	"npm":  "2.5.x"
+  },
+  "dependencies": {
+    "node-static": "~0.7.1",
+    "socket.io": "~0.9.16"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Simonot/shareBestAngle"
+  },
+  "author": "Simon Duvergier"
+}
