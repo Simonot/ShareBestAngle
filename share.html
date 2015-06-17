@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta name='keywords' content='WebRTC, HTML5, JavaScript' />
+        <meta name='description' content='WebRTC Reference App' />
+        <meta name='viewport' content='width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1'>
+
+        <base target='_blank'>
+
+        <title>Sharing your best angle !</title>
+        <style>
+            div
+            {
+                width: 550px;
+                margin-top: 5px;
+                margin-left: 25%;
+                text-align: center;
+                padding-top: 2px;
+                padding-bottom: 2px;
+            }
+            video
+            {
+                width: 500px;
+                border-style: solid;
+                border-width: 2px;
+                text-align: center;
+                margin-top: 2px;
+                margin-right: 2px;
+                margin-left: 2px;
+                margin-bottom: 2px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div>
+            <video class="video" id="video" autoplay muted>
+            </video></br>
+            <button id="shareButton" type="button">Start sharing !</button>
+        </div>
+
+        <script src='/socket.io/socket.io.js'></script>
+        <script src='/js/lib/adapter.js'></script>
+        <script src='/js/main_share.js'></script>
+    </body>
+</html>

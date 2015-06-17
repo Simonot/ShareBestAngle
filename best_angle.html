@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta name='keywords' content='WebRTC, HTML5, JavaScript' />
+        <meta name='description' content='WebRTC Reference App' />
+        <meta name='viewport' content='width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1'>
+
+        <base target='_blank'>
+
+        <title>Finding your best angle !</title>
+        <style>
+            div
+            {
+                width: 1100px;
+                margin-top: 5px;
+                text-align: center;
+                padding-top: 2px;
+                padding-bottom: 2px;
+            }
+            video
+            {
+                width: 500px;
+                border-style: solid;
+                border-width: 2px;
+                text-align: center;
+                margin-top: 2px;
+                margin-right: 2px;
+                margin-left: 2px;
+                margin-bottom: 2px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div>
+            <video class="video" id="remotevideo" autoplay muted></video>
+            <video class="video" id="remotevideo2" hidden autoplay muted></video>
+            </br>
+            <button id="findButton" type="button">Finding your best angle !</button><button id="changeButton" type="button" disabled>Change angle !</button>
+            </br>
+            <video class="video" id="localvideo" autoplay muted></video>
+        </div>
+
+        <script src='/socket.io/socket.io.js'></script>
+        <script src='/js/lib/adapter.js'></script>
+        <script src='/js/main_best_angle.js'></script>
+    </body>
+</html>
