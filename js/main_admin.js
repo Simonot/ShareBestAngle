@@ -1,23 +1,27 @@
 'use strict';
+/* Please start by reading the README file to understand the idea of the project.
+   You can also use it when reading the code, to help you understant the stack of exchanging messages
+*/
 
 var isAdmin = true;
-var numberShareClient = 0;
-var numberBestAngleClient = 0;
 var numberActualClient = 0;
+// var for shareClient <-> admin 
+var numberShareClient = 0;
 var isShareClient; // to diferenciate the case of the communication admin/shareClient and admin/BestAngleClient
 var newStreamClient = true; // to diferenciate the case of new <video> needed to ba add and only change of emptyVideo is needed
 var isStarted = [];
 var pcShare = [];
+var remoteStream = []
+var freeStreamNumero = [];
+// var for bestAngle <-> admin
+var numberBestAngleClient = 0;
 var pcBestAngle = [];
 var isStartedBestAngle = [];
-var sharedAngle = [];
-var remoteStream = [];
+var sharedAngle = []; // to know the numero of the stream which the bestAngleClient is connected
 var bestAngleStream = [];
-var freeStreamNumero = [];
+// var for STUn TURN servers
 var turnReady;
-
 var pc_config = {'iceServers': [{'url': 'stun:stun.l.google.com:19302'}]};
-
 var pc_constraints = {'optional': [{'DtlsSrtpKeyAgreement': true}]};
 
 // Set up audio and video regardless of what devices are present.
@@ -36,13 +40,14 @@ socket.on('log', function (array){
   console.log.apply(console, array);
 });
 
+if (location.hostname != "localhost") {
+  requestTurn('https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913');
+}
+
 ////////////////////////////////////////////////
 
 function sendMessage(message){
   console.log('Client sending message: ', message);
-  // if (typeof message === 'object') {
-  //   message = JSON.stringify(message);
-  // }
   socket.emit('message', message);
 }
 
@@ -51,6 +56,9 @@ socket.on('message', function (message){
   if (message === 'got share client media') {
     isShareClient = true;
     if (freeStreamNumero.length == 0) {
+      /* We add a new shareClient to the list because we can not reuse an old one
+         left by a precedent leaving procedure of one shareClient
+      */ 
       newStreamClient = true;
       numberShareClient = numberShareClient + 1;
       numberActualClient = numberShareClient;
@@ -58,6 +66,9 @@ socket.on('message', function (message){
       isStarted[numberShareClient] = false;
       maybeStart();
     } else {
+      /* just reuse the last shareConnection closed buy making the actual client the
+         pop() of the freeStreamnumero
+      */
       numberActualClient = freeStreamNumero.pop();
       newStreamClient = false;
       socket.emit('you are share client number', numberActualClient);
@@ -69,7 +80,7 @@ socket.on('message', function (message){
     numberBestAngleClient = numberBestAngleClient + 1;
     numberActualClient = numberBestAngleClient;
     socket.emit('you are best angle client number', numberActualClient);
-    sharedAngle[numberActualClient] = 0;
+    sharedAngle[numberActualClient] = 0; // no stream connected yet
     isStartedBestAngle[numberActualClient] = false;
     maybeStart_BestAngle();
   } 
@@ -79,33 +90,36 @@ socket.on('message', function (message){
     pcBestAngle[numberActualClient].close();
     isStartedBestAngle[numberActualClient] = false;
     maybeStart_BestAngle();
-  } else if (message.type === 'offer') {
-      if (isShareClient) {
-        pcShare[numberActualClient].setRemoteDescription(new RTCSessionDescription(message));
-        doAnswer();
-      } else {
-        pcBestAngle[numberActualClient].setRemoteDescription(new RTCSessionDescription(message));
-        doAnswer_BestAngle();
-      }
-  } else if (message.type === 'answer' && isStarted[numberActualClient]) {
-    //the admin will never call somebody, he will then never recieve an answer
-      } else if (message.type === 'candidate' && isStarted[numberActualClient]) {
-      if (isShareClient) {
-        var candidate = new RTCIceCandidate({
-          sdpMLineIndex: message.label,
-          candidate: message.candidate
-        });
-        pcShare[numberActualClient].addIceCandidate(candidate);
-      } else {
-        var candidate = new RTCIceCandidate({
-          sdpMLineIndex: message.label,
-          candidate: message.candidate
-        });
-        pcBestAngle[numberActualClient].addIceCandidate(candidate);
-      }
+  } 
+  else if (message.type === 'offer') {
+    if (isShareClient) {
+      pcShare[numberActualClient].setRemoteDescription(new RTCSessionDescription(message));
+      doAnswer();
+    } else {
+      pcBestAngle[numberActualClient].setRemoteDescription(new RTCSessionDescription(message));
+      doAnswer_BestAngle();
+    }
+  } 
+  else if (message.type === 'candidate' && isStarted[numberActualClient]) {
+    if (isShareClient) {
+      var candidate = new RTCIceCandidate({
+        sdpMLineIndex: message.label,
+        candidate: message.candidate
+      });
+      pcShare[numberActualClient].addIceCandidate(candidate);
+    } else {
+      var candidate = new RTCIceCandidate({
+        sdpMLineIndex: message.label,
+        candidate: message.candidate
+      });
+      pcBestAngle[numberActualClient].addIceCandidate(candidate);
+    }
   }
 });
 
+/* when a share client disconnect we close with RTCPeerConnection in order to make free 
+   the pcShare[number] for a potential reuse in the futur by a new share client
+*/
 socket.on('share client disconnected', function(number) {
   if(number != 0)
     if(isStarted[number]) {
@@ -127,6 +141,7 @@ socket.on('share client disconnected', function(number) {
   console.log('freeStreamNumero length', freeStreamNumero.length);
 });
 
+// just free the memory when a best angle client disconnect
 socket.on('best angle client disconnected', function(number) {
   if(number != 0)
     if(isStartedBestAngle[number]) {
@@ -141,10 +156,6 @@ socket.on('best angle client disconnected', function(number) {
 var docNumberShareVideos = document.getElementById('numberShareVideos');
 var docNumberEmptyVideos = document.getElementById('numberEmptyVideos');
 
-if (location.hostname != "localhost") {
-  requestTurn('https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913');
-}
-
 function maybeStart() {
   console.log('numberActualClient', numberActualClient);
   if (!isStarted[numberActualClient]) {
@@ -155,7 +166,7 @@ function maybeStart() {
 }
 
 function maybeStart_BestAngle() {
-  console.log('isStartedBestAngle', isStartedBestAngle[numberActualClient]);
+  console.log('numberActualClient', numberActualClient);
   if (!isStartedBestAngle[numberActualClient]) {
     createPeerConnection_BestAngle();
     isStartedBestAngle[numberActualClient] = true;
@@ -205,6 +216,7 @@ function createPeerConnection_BestAngle() {
       sharedAngle[numberActualClient] = 1;
     else sharedAngle[numberActualClient] = sharedAngle[numberActualClient] + 1;
   while (remoteStream[sharedAngle[numberActualClient]] == null)
+  // ataching the first stream available
   bestAngleStream[numberActualClient] = remoteStream[sharedAngle[numberActualClient]];
   pcBestAngle[numberActualClient].addStream(bestAngleStream[numberActualClient]);
   console.log('Stream added to pcBestAngle', sharedAngle[numberActualClient]);
@@ -225,10 +237,16 @@ function handleIceCandidate(event) {
   }
 }
 
+/* We have to create a new HTML video element to host the shareClient stream
+   Two possibilities :
+    - we have all the HTML video elements hosting a shareClient stream (newStreamClient == true)
+      we then add the new HTML video element to the videos div
+    - we have an empty HTML video element (newStreamclient == false) 
+      we then replace the empty HTML video element by the one we have created
+*/
 function handleRemoteStreamAdded(event) {
   console.log('freeStreamNumero length', freeStreamNumero.length);
   console.log('New remote stream added');
-  console.log('remote stream', numberActualClient);
   var newRemoteVideo = document.createElement('video');
   newRemoteVideo.id = "video" + numberActualClient;
   newRemoteVideo.setAttribute('class', 'video');
@@ -246,25 +264,16 @@ function handleRemoteStreamAdded(event) {
   }
 }
 
-function handleRemoteStreamRemoved(event) {
-  console.log('Remote stream removed. Event: ', event);
-}
-
-function handleUserMedia(stream) {
-  // admin dont share is UserMedia !
-}
-
-function handleUserMediaError(error){
-  // admin dont share is UserMedia !
-  //console.log('getUserMedia error: ', error);
-}
-
 function handleRemoteStreamAdded_BestAngle(event) {
   // nothing to do because a best angle client will never add a stream !
 }
 
+function handleRemoteStreamRemoved(event) {
+  // nothin because a best angle client will never remove a stream !
+}
+
 function handleRemoteStreamRemoved_BestAngle(event) {
-  // nothin because a best angle cleint will never remove a stream !
+  // nothin because a best angle client will never remove a stream !
 }
 
 function handleCreateOfferError(event){
@@ -273,12 +282,6 @@ function handleCreateOfferError(event){
 
 function handleCreateAnswerError(event){
   console.log('createAnswer() error: ', event);
-}
-
-function doCall() {
-  // admin will never start a call !
-  //console.log('Sending offer to peer');
-  //pcShare[numberShareClient].createOffer(setLocalAndSendMessage, handleCreateOfferError);
 }
 
 function doAnswer() {

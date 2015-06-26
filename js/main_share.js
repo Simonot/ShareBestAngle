@@ -80,20 +80,6 @@ socket.on('message', function (message){
 var localVideo = document.getElementById('video');
 var shareButton = document.getElementById('shareButton');
 
-function handleUserMedia(stream) {
-  console.log('Adding local stream.');
-  localVideo.src = window.URL.createObjectURL(stream);
-  localStream = stream;
-  console.log('got user media');
-  if (isitAdmin) {
-    maybeStart();
-  }
-}
-
-function handleUserMediaError(error){
-  console.log('getUserMedia error: ', error);
-}
-
 var constraints = {audio: true, video: true};
 
 shareButton.addEventListener('click', function(){
@@ -141,6 +127,20 @@ function createPeerConnection() {
     alert('Cannot create RTCPeerConnection object.');
       return;
   }
+}
+
+function handleUserMedia(stream) {
+  console.log('Adding local stream.');
+  localVideo.src = window.URL.createObjectURL(stream);
+  localStream = stream;
+  console.log('got user media');
+  if (isitAdmin) {
+    maybeStart();
+  }
+}
+
+function handleUserMediaError(error){
+  console.log('getUserMedia error: ', error);
 }
 
 function handleIceCandidate(event) {
