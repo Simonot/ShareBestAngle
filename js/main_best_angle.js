@@ -1,19 +1,18 @@
 'use strict';
 
 var isitAdmin = false;
-var isStarted = false;
-var isStarted2 = false;
 var localStream;
-var remoteStream;
-var remoteStream2;
+var isStarted = false;
 var pc;
+var remoteStream;
+var isStarted2 = false;
 var pc2;
-var numeroCurrentConnection = 0;
+var remoteStream2;
+var numeroCurrentConnection = 0; // use for switching between the two RTCPeerConnection when changing angle
 var numberBestAngleClient = 0;
+
 var turnReady;
-
 var pc_config = {'iceServers': [{'url': 'stun:stun.l.google.com:19302'}]};
-
 var pc_constraints = {'optional': [{'DtlsSrtpKeyAgreement': true}]};
 
 // Set up audio and video regardless of what devices are present.
@@ -21,7 +20,7 @@ var sdpConstraints = {'mandatory': {
   'OfferToReceiveAudio':true,
   'OfferToReceiveVideo':true }};
 
-/////////////////////////////////////////////
+/////////////////////////////////////////////////////////
 
 var socket = io.connect();
 
@@ -44,41 +43,44 @@ socket.on('log', function (array){
   console.log.apply(console, array);
 });
 
-////////////////////////////////////////////////
+if (location.hostname != "localhost") {
+  requestTurn('https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913');
+}
+
+/////////////////////////////////////////////////////////
 
 function sendMessage(message){
   console.log('Client sending message: ', message);
-  // if (typeof message === 'object') {
-  //   message = JSON.stringify(message);
-  // }
   socket.emit('message', message);
 }
 
 socket.on('message', function (message){
   console.log('Client received message:', message);
-  if (message == 'admin ready')
+  if (message == 'admin ready') {
+    /* We have to check if is it the first time we connect with webRTC to admin
+       or if we only want to switch RTCPeerConnection when changing angle (case numeroCurrentConnection == 1 or 2)
+    */
     if (numeroCurrentConnection == 0) {
       numeroCurrentConnection = 1;
       doCall();
     } else if (numeroCurrentConnection == 1){
       numeroCurrentConnection = 2;
       doCall2();
-    } else {
+    } else { // numeroCurrentConnection == 2
       numeroCurrentConnection = 1;
       doCall();
     }
-  else if (message.type === 'offer') {
-   // if (!isStarted) {
-   //   maybeStart();
-   // }
-   // pc.setRemoteDescription(new RTCSessionDescription(message));
-   // doAnswer();
-  } else if (message.type === 'answer') {
+  } 
+  else if (message === 'no share client') {
+      alert("sorry but nobody is sharing an angle, please try change angle later");
+  } 
+  else if (message.type === 'answer') {
       if (numeroCurrentConnection == 1 && isStarted)
         pc.setRemoteDescription(new RTCSessionDescription(message));
       else if (numeroCurrentConnection == 2 && isStarted2)
         pc2.setRemoteDescription(new RTCSessionDescription(message));
-  } else if (message.type === 'candidate') {
+  } 
+  else if (message.type === 'candidate') {
       if (numeroCurrentConnection == 1 && isStarted) {
         var candidate = new RTCIceCandidate({
           sdpMLineIndex: message.label,
@@ -92,9 +94,8 @@ socket.on('message', function (message){
         });
         pc2.addIceCandidate(candidate);
       }
-  } else if (message === 'no share client') {
-      alert("sorry but nobody is sharing an angle, please try change angle later");
-  } else if (message == 'admin bye') {
+  } 
+  else if (message == 'admin bye') {
       isitAdmin = false;
       isStarted = false;
       isStarted2 = false;
@@ -106,7 +107,11 @@ socket.on('message', function (message){
   }
 });
 
-////////////////////////////////////////////////////
+window.onbeforeunload = function(e){
+  socket.emit('best angle client disconnected', numberBestAngleClient);
+}
+
+/////////////////////////////////////////////////////////
 
 var localVideo = document.getElementById('localvideo');
 var remoteVideo = document.getElementById('remotevideo');
@@ -114,27 +119,13 @@ var remoteVideo2 = document.getElementById('remotevideo2');
 var findButton = document.getElementById('findButton');
 var changeButton = document.getElementById('changeButton');
 
-function handleUserMedia(stream) {
-  console.log('Adding local stream.');
-  localVideo.src = window.URL.createObjectURL(stream);
-  localStream = stream;
-  console.log('got user media');
-  if (isitAdmin) {
-    maybeStart();
-  }
-}
-
-function handleUserMediaError(error){
-  console.log('getUserMedia error: ', error);
-}
-
 var constraints = {audio: true, video: true};
 
+// For the fond button we have to get the user media with constraint audio and video true, other way we can not receive video (cf README III)
 findButton.addEventListener('click', function(){
   if (isitAdmin) {
     getUserMedia(constraints, handleUserMedia, handleUserMediaError);
     console.log('Getting user media with constraints', constraints);
-    //maybeStart();
     findButton.setAttribute('disabled', '');
     changeButton.removeAttribute('disabled');
   }
@@ -144,6 +135,7 @@ findButton.addEventListener('click', function(){
 
 changeButton.addEventListener('click', function(){
   if (isitAdmin) {
+    // if the current connection is pc, we need to close it and start the connection with pc2
     if (numeroCurrentConnection == 1) {
       console.log('numeroCurrentConnection   1');
       createPeerConnection2();
@@ -156,7 +148,9 @@ changeButton.addEventListener('click', function(){
         number: numberBestAngleClient});
       remoteVideo.setAttribute('hidden', '');
       remoteVideo2.removeAttribute('hidden');
-    } else {
+    } 
+    // if the current connection is pc2 we then need to close it and start connection with pc 
+    else { // numeroCurrentconnection == 2
       console.log('numeroCurrentConnection   2');
       createPeerConnection();
       pc2.close();
@@ -174,9 +168,7 @@ changeButton.addEventListener('click', function(){
     alert("admin is still not connected, wait him to find the best angle");
 });
 
-if (location.hostname != "localhost") {
-  requestTurn('https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913');
-}
+/////////////////////////////////////////////////////////
 
 function maybeStart() {
   console.log('isStarted', isStarted);
@@ -191,12 +183,6 @@ function maybeStart() {
     }
   }
 }
-
-window.onbeforeunload = function(e){
-  socket.emit('best angle client disconnected', numberBestAngleClient);
-}
-
-/////////////////////////////////////////////////////////
 
 function createPeerConnection() {
   try {
@@ -224,6 +210,20 @@ function createPeerConnection2() {
     alert('Cannot create RTCPeerConnection object.');
       return;
   }
+}
+
+function handleUserMedia(stream) {
+  console.log('Adding local stream.');
+  localVideo.src = window.URL.createObjectURL(stream);
+  localStream = stream;
+  console.log('got user media');
+  if (isitAdmin) {
+    maybeStart();
+  }
+}
+
+function handleUserMediaError(error){
+  console.log('getUserMedia error: ', error);
 }
 
 function handleIceCandidate(event) {
@@ -276,11 +276,6 @@ function doCall2() {
   pc2.createOffer(setLocalAndSendMessage2, handleCreateOfferError);
 }
 
-function doAnswer() {
-  //console.log('Sending answer to peer.');
-  //pc.createAnswer(setLocalAndSendMessage(), handleCreateAnswerError, sdpConstraints);
-}
-
 function setLocalAndSendMessage(sessionDescription) {
   // Set Opus as the preferred codec in SDP if Opus is present.
   sessionDescription.sdp = preferOpus(sessionDescription.sdp);
@@ -327,7 +322,7 @@ function requestTurn(turn_url) {
   }
 }
 
-///////////////////////////////////////////
+/////////////////////////////////////////////////////////
 
 // Set Opus as the default audio codec if it's present.
 function preferOpus(sdp) {

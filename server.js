@@ -10,6 +10,11 @@ var app = http.createServer(function (req, res) {
 	log_comment("server listening (port "+port+")");
 });
 
+/* to send the signaling message to the right client we use here the var currentConnection
+   In deed we only have to deal with the signaling messages during the connection. After the server
+   is not needed, we only use the P2P connection to exange the video. We then asume that the clients
+   do not connect at the same time
+*/
 var isitAdmin = false;
 var adminConnection;
 var currentConnection;

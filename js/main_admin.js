@@ -19,7 +19,7 @@ var pcBestAngle = [];
 var isStartedBestAngle = [];
 var sharedAngle = []; // to know the numero of the stream which the bestAngleClient is connected
 var bestAngleStream = [];
-// var for STUn TURN servers
+// var for STUN TURN servers
 var turnReady;
 var pc_config = {'iceServers': [{'url': 'stun:stun.l.google.com:19302'}]};
 var pc_constraints = {'optional': [{'DtlsSrtpKeyAgreement': true}]};
@@ -29,7 +29,7 @@ var sdpConstraints = {'mandatory': {
   'OfferToReceiveAudio':true,
   'OfferToReceiveVideo':true }};
 
-/////////////////////////////////////////////
+/////////////////////////////////////////////////////////
 
 var socket = io.connect();
 
@@ -44,7 +44,7 @@ if (location.hostname != "localhost") {
   requestTurn('https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913');
 }
 
-////////////////////////////////////////////////
+/////////////////////////////////////////////////////////
 
 function sendMessage(message){
   console.log('Client sending message: ', message);
@@ -151,7 +151,11 @@ socket.on('best angle client disconnected', function(number) {
     }
 });
 
-////////////////////////////////////////////////////
+window.onbeforeunload = function(e){
+  sendMessage('admin bye');
+}
+
+/////////////////////////////////////////////////////////
 
 var docNumberShareVideos = document.getElementById('numberShareVideos');
 var docNumberEmptyVideos = document.getElementById('numberEmptyVideos');
@@ -173,12 +177,6 @@ function maybeStart_BestAngle() {
     sendMessage('admin ready');
   }
 }
-
-window.onbeforeunload = function(e){
-  sendMessage('admin bye');
-}
-
-/////////////////////////////////////////////////////////
 
 function createPeerConnection() {
   try {
@@ -340,7 +338,7 @@ function requestTurn(turn_url) {
   }
 }
 
-///////////////////////////////////////////
+/////////////////////////////////////////////////////////
 
 // Set Opus as the default audio codec if it's present.
 function preferOpus(sdp) {

@@ -71,6 +71,10 @@ III. Normal exchanging messages stack for bestAngle_client <-> admin
 ! To simplify, I have not taking in account the fact that, because Admin is dealing with multiple bestAngleClient, he has
   to use an array of RTCPeerConnection. That is the reason for all the operation with numberBestAngleClient and actualClient
   
+! Normally we do not need to ask for the video and audio of the best angle client, he only want to see the videos sharing
+  by shareClients. Furthermore, if he have to create the RTCPeerConnection with audio and video constraint, so you have to
+  use getUserMedia, if we do not, the offer in the webRTC exchange while throws an error. That is why we use getUserMedia.
+  
 ! For switching the stream you want to be connected with with the admin page I have chosen to use 2 RTCPeerConnection
   pc and pc2). So if you want to understand the normal stack of the find button and the change button, you have to be
   aware that the occasional 'if (numeroConnection == ...)' are there to properly switch between pc and pc2 when the user

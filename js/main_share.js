@@ -1,14 +1,16 @@
 'use strict';
+/* Please start by reading the README file to understand the idea of the project.
+   You can also use it when reading the code, to help you understant the stack of exchanging messages
+*/
 
 var isitAdmin = false;
 var isStarted = false;
-var localStream;
 var pc;
+var localStream;
 var numberShareClient = 0;
+
 var turnReady;
-
 var pc_config = {'iceServers': [{'url': 'stun:stun.l.google.com:19302'}]};
-
 var pc_constraints = {'optional': [{'DtlsSrtpKeyAgreement': true}]};
 
 // Set up audio and video regardless of what devices are present.
@@ -16,7 +18,7 @@ var sdpConstraints = {'mandatory': {
   'OfferToReceiveAudio':true,
   'OfferToReceiveVideo':true }};
 
-/////////////////////////////////////////////
+/////////////////////////////////////////////////////////
 
 var socket = io.connect();
 
@@ -39,13 +41,14 @@ socket.on('log', function (array){
   console.log.apply(console, array);
 });
 
-////////////////////////////////////////////////
+if (location.hostname != "localhost") {
+  requestTurn('https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913');
+}
+
+/////////////////////////////////////////////////////////
 
 function sendMessage(message){
   console.log('Client sending message: ', message);
-  // if (typeof message === 'object') {
-  //   message = JSON.stringify(message);
-  // }
   socket.emit('message', message);
 }
 
@@ -53,21 +56,18 @@ socket.on('message', function (message){
   console.log('Client received message:', message);
   if (message == 'admin ready')
     doCall();
-  else if (message.type === 'offer') {
-   // if (!isStarted) {
-   //   maybeStart();
-   // }
-   // pc.setRemoteDescription(new RTCSessionDescription(message));
-   // doAnswer();
-  } else if (message.type === 'answer' && isStarted) {
+  } 
+  else if (message.type === 'answer' && isStarted) {
     pc.setRemoteDescription(new RTCSessionDescription(message));
-  } else if (message.type === 'candidate' && isStarted) {
+  } 
+  else if (message.type === 'candidate' && isStarted) {
     var candidate = new RTCIceCandidate({
       sdpMLineIndex: message.label,
       candidate: message.candidate
     });
     pc.addIceCandidate(candidate);
-  } else if(message == 'admin bye') {
+  } 
+  else if(message == 'admin bye') {
     isStarted = false;
     pc.close();
     pc = null;
@@ -75,7 +75,13 @@ socket.on('message', function (message){
   }
 });
 
-////////////////////////////////////////////////////
+// just send a message to admin to free memeory and to free the HTML video element containing the stream of this share client
+window.onbeforeunload = function(e) {
+  if(numberShareClient != 0)
+    socket.emit('share client disconnected', numberShareClient);
+}
+
+/////////////////////////////////////////////////////////
 
 var localVideo = document.getElementById('video');
 var shareButton = document.getElementById('shareButton');
@@ -91,13 +97,11 @@ shareButton.addEventListener('click', function(){
     alert("admin is still not connected, wait him to start sharing");
 });
 
-if (location.hostname != "localhost") {
-  requestTurn('https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913');
-}
+
 
 function maybeStart() {
   console.log('isStarted', isStarted);
-  if (!isStarted && typeof localStream != 'undefined') {
+  if (!isStarted) {
     createPeerConnection();
     pc.addStream(localStream);
     isStarted = true;
@@ -107,13 +111,6 @@ function maybeStart() {
     }
   }
 }
-
-window.onbeforeunload = function(e) {
-  if(numberShareClient != 0)
-    socket.emit('share client disconnected', numberShareClient);
-}
-
-/////////////////////////////////////////////////////////
 
 function createPeerConnection() {
   try {
@@ -221,7 +218,7 @@ function requestTurn(turn_url) {
   }
 }
 
-///////////////////////////////////////////
+/////////////////////////////////////////////////////////
 
 // Set Opus as the default audio codec if it's present.
 function preferOpus(sdp) {
