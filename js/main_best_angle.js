@@ -160,6 +160,7 @@ changeButton.addEventListener('click', function(){
       number: numberBestAngleClient});
   } 
   // if the current connection is pc2, we need to start the connection with pc and ask for changing angle (pc2 will be closed when receiving answer message)  else { // numeroCurrentconnection == 2
+  else if (numeroCurrentConnection == 2) {
     console.log('numeroCurrentConnection   2');
     createPeerConnection();
     pc.addStream(localStream);
