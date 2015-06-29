@@ -56,7 +56,6 @@ socket.on('message', function (message){
   console.log('Client received message:', message);
   if (message == 'admin ready')
     doCall();
-  } 
   else if (message.type === 'answer' && isStarted) {
     pc.setRemoteDescription(new RTCSessionDescription(message));
   } 
