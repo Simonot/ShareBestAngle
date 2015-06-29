@@ -61,7 +61,6 @@ socket.on('message', function (message){
        or if we only want to switch RTCPeerConnection when changing angle (case numeroCurrentConnection == 1 or 2)
     */
     if (numeroCurrentConnection == 0) {
-      //numeroCurrentConnection = 1;
       doCall();
     } else if (numeroCurrentConnection == 1){
       numeroCurrentConnection = 2;
@@ -75,24 +74,26 @@ socket.on('message', function (message){
       alert("sorry but nobody is sharing an angle, please try change angle later");
   } 
   else if (message.type === 'answer') {
-      if (numeroCurrentconnection == 0) {
-        numeroCurrentconnection = 1;
-        pc.setRemoteDescription(new RTCSessionDescription(message));
-      } else if (numeroCurrentConnection == 1 && isStarted) {
-        pc.setRemoteDescription(new RTCSessionDescription(message));
-        pc2.close();
-        isStarted2 = false;
-        remoteVideo2.setAttribute('hidden', '');
-        remoteVideo.removeAttribute('hidden');
-        changeButton.removeAttribute('disabled');
-      } else if (numeroCurrentConnection == 2 && isStarted2) {
-        pc2.setRemoteDescription(new RTCSessionDescription(message));
-        pc.close();
-        isStarted = false;
-        remoteVideo.setAttribute('hidden', '');
-        remoteVideo2.removeAttribute('hidden');
-        changeButton.removeAttribute('disabled');
-      }
+    /* the test about numeroCurrentConnection are just here to manage closing the pc or pc2 connection
+       when changing angle
+    */
+    if (numeroCurrentConnection == 0) {
+      numeroCurrentConnection = 1;
+      pc.setRemoteDescription(new RTCSessionDescription(message));
+    } else if (numeroCurrentConnection == 1 && isStarted) {
+      pc.setRemoteDescription(new RTCSessionDescription(message));
+      pc2.close();
+      isStarted2 = false;
+      remoteVideo2.setAttribute('hidden', '');
+      remoteVideo.removeAttribute('hidden');
+    } else if (numeroCurrentConnection == 2 && isStarted2) {
+      pc2.setRemoteDescription(new RTCSessionDescription(message));
+      pc.close();
+      isStarted = false;
+      remoteVideo.setAttribute('hidden', '');
+      remoteVideo2.removeAttribute('hidden');
+    }
+    changeButton.removeAttribute('disabled');
   } 
   else if (message.type === 'candidate') {
       if (numeroCurrentConnection == 1 && isStarted) {
@@ -135,13 +136,12 @@ var changeButton = document.getElementById('changeButton');
 
 var constraints = {audio: true, video: true};
 
-// For the fond button we have to get the user media with constraint audio and video true, other way we can not receive video (cf README III)
+// For the find button we have to get the user media with constraint audio and video true, other way we can not receive video (cf README III)
 findButton.addEventListener('click', function(){
   if (isitAdmin) {
     getUserMedia(constraints, handleUserMedia, handleUserMediaError);
     console.log('Getting user media with constraints', constraints);
     findButton.setAttribute('disabled', '');
-    changeButton.removeAttribute('disabled');
   }
   else
     alert("admin is still not connected, wait him to find the best angle");
@@ -149,33 +149,24 @@ findButton.addEventListener('click', function(){
 
 changeButton.addEventListener('click', function(){
   changeButton.setAttribute('disabled', '');
-  // if the current connection is pc, we need to close it and start the connection with pc2
+  // if the current connection is pc, we need to start the connection with pc2 and ask for changing angle (pc will be closed when receiving answer message)
   if (numeroCurrentConnection == 1) {
     console.log('numeroCurrentConnection   1');
     createPeerConnection2();
-    //pc.close();
-    //isStarted = false;
     pc2.addStream(localStream);
     isStarted2 = true;
     sendMessage({
       type: 'change angle',
       number: numberBestAngleClient});
-    //remoteVideo.setAttribute('hidden', '');
-    //remoteVideo2.removeAttribute('hidden');
   } 
-  // if the current connection is pc2 we then need to close it and start connection with pc 
-  else { // numeroCurrentconnection == 2
+  // if the current connection is pc2, we need to start the connection with pc and ask for changing angle (pc2 will be closed when receiving answer message)  else { // numeroCurrentconnection == 2
     console.log('numeroCurrentConnection   2');
     createPeerConnection();
-    //pc2.close();
-    //isStarted2 = false;
     pc.addStream(localStream);
     isStarted = true;
     sendMessage({
       type: 'change angle',
       number: numberBestAngleClient});
-    //remoteVideo2.setAttribute('hidden', '');
-    //remoteVideo.removeAttribute('hidden');
   }
 });
 
